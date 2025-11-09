@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Horarios Médicos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .doctor-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .doctor-item select,
+        .doctor-item input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .doctor-item select {
+            width: 80px;
+        }
+
+        .doctor-item input {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 15px;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* Estilo específico para <input type="time"> */
+        .form-group input[type="time"] {
+            text-align: center;
+        }
+
+        .time-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .result {
+            background: #fff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .templates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .time-row {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍⚕️ Generador de Horarios Médicos</h1>
+
+        <div class="error" id="error"></div>
+
+        <div class="section">
+            <h2>👥 Médicos (2-7)</h2>
+            <div id="doctors-list"></div>
+            <button class="btn btn-primary" onclick="addDoctor()" style="margin-top: 10px;">➕ Agregar Médico</button>
+        </div>
+
+        <div class="section">
+            <h2>⏰ Configuración del Turno</h2>
+            <div class="time-row">
+                <div class="form-group">
+                    <label>Hora de Inicio:</label>
+                    <!-- 24h, saltos de 5 min (300s) -->
+                    <input type="time" id="shift-start" value="08:00" step="300">
+                </div>
+                <div class="form-group">
+                    <label>Hora de Fin:</label>
+                    <input type="time" id="shift-end" value="20:00" step="300">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🍽️ Configuración de Almuerzos</h2>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                <input type="checkbox" id="enable-lunch" onchange="toggleLunch()" checked>
+                <span style="font-weight: 600;">Incluir almuerzos en el turno</span>
+            </label>
+            <div id="lunch-config">
+                <div class="time-row">
+                    <div class="form-group">
+                        <label>Periodo Desde:</label>
+                        <input type="time" id="lunch-start" value="11:30" step="300">
+                    </div>
+                    <div class="form-group">
+                        <label>Periodo Hasta:</label>
+                        <input type="time" id="lunch-end" value="14:00" step="300">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Duración (minutos):</label>
+                    <input type="number" id="lunch-duration" value="30" min="10" max="120">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>☕ Configuración de Descansos</h2>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                <input type="checkbox" id="enable-breaks" onchange="toggleBreaks()" checked>
+                <span style="font-weight: 600;">Incluir descansos en el turno</span>
+            </label>
+            <div id="breaks-config">
+                <div class="time-row">
+                    <div class="form-group">
+                        <label>Hora de Inicio:</label>
+                        <input type="time" id="break-start-time" value="09:00" step="300">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora de Fin:</label>
+                        <input type="time" id="break-end-time" value="19:00" step="300">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Cantidad de descansos por médico:</label>
+                    <input type="number" id="break-count" value="2" min="1" max="5">
+                </div>
+                <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                    <small style="color: #2c3e50;">
+                        ℹ️ El tiempo de cada descanso se calculará automáticamente distribuyendo uniformemente el periodo entre todos los médicos
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💾 Plantillas Guardadas</h2>
+            <div class="templates" id="templates"></div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Nombre de la plantilla:</label>
+                <input type="text" id="template-name" placeholder="Ej: Turno Mañana">
+            </div>
+            <button class="btn btn-success" onclick="saveTemplate()">💾 Guardar Plantilla</button>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="generateSchedule()">🎯 Generar Horarios</button>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="actions" id="result-actions" style="display: none;">
+            <button class="btn btn-success" onclick="copyToClipboard()">📋 Copiar para WhatsApp</button>
+            <button class="btn btn-success" onclick="sendWhatsApp()">📱 Enviar por WhatsApp</button>
+        </div>
+    </div>
+
+    <script>
+        let doctors = [];
+
+        function timeToMinutes(time) {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function minutesToTime(mins) {
+            mins = mins % 1440;
+            if (mins < 0) mins += 1440;
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        function minutesBetween(start, end) {
+            let diff = end - start;
+            if (diff < 0) diff += 1440;
+            return diff;
+        }
+
+        function toggleBreaks() {
+            const enabled = document.getElementById('enable-breaks').checked;
+            document.getElementById('breaks-config').style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleLunch() {
+            const enabled = document.getElementById('enable-lunch').checked;
+            document.getElementById('lunch-config').style.display = enabled ? 'block' : 'none';
+        }
+
+        function addDoctor() {
+            if (doctors.length >= 7) {
+                showError('Máximo 7 médicos permitidos');
+                return;
+            }
+            doctors.push({ title: 'Dr.', name: '' });
+            renderDoctors();
+        }
+
+        function removeDoctor(index) {
+            if (doctors.length <= 2) {
+                showError('Mínimo 2 médicos requeridos');
+                return;
+            }
+            doctors.splice(index, 1);
+            renderDoctors();
+        }
+
+        function renderDoctors() {
+            const list = document.getElementById('doctors-list');
+            list.innerHTML = doctors.map((d, i) => `
+                <div class="doctor-item">
+                    <select onchange="doctors[${i}].title = this.value">
+                        <option value="Dr." ${d.title === 'Dr.' ? 'selected' : ''}>Dr.</option>
+                        <option value="Dra." ${d.title === 'Dra.' ? 'selected' : ''}>Dra.</option>
+                    </select>
+                    <input type="text" placeholder="Nombre" value="${d.name}" 
+                           onchange="doctors[${i}].name = this.value">
+                    <button class="btn btn-danger" onclick="removeDoctor(${i})">✖</button>
+                </div>
+            `).join('');
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = '⚠️ ' + msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 4000);
+        }
+
+        function generateSchedule() {
+            if (doctors.length < 2) {
+                showError('Debes ingresar al menos 2 médicos');
+                return;
+            }
+
+            if (doctors.some(d => !d.name.trim())) {
+                showError('Todos los médicos deben tener nombre');
+                return;
+            }
+
+            const lunchEnabled = document.getElementById('enable-lunch').checked;
+            const breaksEnabled = document.getElementById('enable-breaks').checked;
+
+            if (!lunchEnabled && !breaksEnabled) {
+                showError('Debes activar al menos almuerzos o descansos');
+                return;
+            }
+
+            const shiftStart = timeToMinutes(document.getElementById('shift-start').value);
+            const shiftEnd = timeToMinutes(document.getElementById('shift-end').value);
+            const shiftDuration = minutesBetween(shiftStart, shiftEnd);
+            if (shiftDuration <= 0) {
+                showError('La hora de fin debe ser posterior a la de inicio (aunque sea pasando la medianoche).');
+                return;
+            }
+            
+            let lunchStart, lunchEnd, lunchDuration;
+            if (lunchEnabled) {
+                lunchStart = timeToMinutes(document.getElementById('lunch-start').value);
+                lunchEnd = timeToMinutes(document.getElementById('lunch-end').value);
+                lunchDuration = parseInt(document.getElementById('lunch-duration').value);
+            }
+            
+            let breakStartTime, breakEndTime, breakCount, breakDuration;
+            if (breaksEnabled) {
+                breakStartTime = timeToMinutes(document.getElementById('break-start-time').value);
+                breakEndTime = timeToMinutes(document.getElementById('break-end-time').value);
+                breakCount = parseInt(document.getElementById('break-count').value);
+                
+                const totalBreakPeriod = minutesBetween(breakStartTime, breakEndTime);
+                const totalBreaks = doctors.length * breakCount;
+                breakDuration = Math.round(totalBreakPeriod / totalBreaks);
+                
+                if (breakDuration < 5) {
+                    showError('El periodo de descansos es muy corto. Reduce la cantidad de descansos o amplía el periodo.');
+                    return;
+                }
+            }
+
+            const schedule = [];
+            const lunchPeriod = lunchEnabled ? minutesBetween(lunchStart, lunchEnd) : 0;
+            const breakPeriod = breaksEnabled ? minutesBetween(breakStartTime, breakEndTime) : 0;
+
+            doctors.forEach((doc, idx) => {
+                let lunch = null;
+                if (lunchEnabled) {
+                    const lunchOffset = (lunchPeriod / doctors.length) * idx;
+                    const lunchStartTimeCalc = (lunchStart + lunchOffset) % 1440;
+                    const lunchEndTimeCalc = (lunchStartTimeCalc + lunchDuration) % 1440;
+                    lunch = {
+                        start: minutesToTime(lunchStartTimeCalc),
+                        end: minutesToTime(lunchEndTimeCalc)
+                    };
+                }
+
+                const breaks = [];
+                if (breaksEnabled) {
+                    for (let b = 0; b < breakCount; b++) {
+                        const breakIndex = idx * breakCount + b;
+                        const breakOffset = (breakPeriod / (doctors.length * breakCount)) * breakIndex;
+                        const breakStart = (breakStartTime + breakOffset) % 1440;
+                        const breakEnd = (breakStart + breakDuration) % 1440;
+                        breaks.push({
+                            start: minutesToTime(breakStart),
+                            end: minutesToTime(breakEnd),
+                            duration: breakDuration
+                        });
+                    }
+                }
+
+                schedule.push({
+                    doctor: `${doc.title} ${doc.name}`,
+                    lunch: lunch,
+                    breaks: breaks
+                });
+            });
+
+            displaySchedule(schedule, breakDuration);
+        }
+
+        function displaySchedule(schedule, breakDuration) {
+            const shiftStart = document.getElementById('shift-start').value;
+            const shiftEnd = document.getElementById('shift-end').value;
+            const lunchEnabled = document.getElementById('enable-lunch').checked;
+            const breaksEnabled = document.getElementById('enable-breaks').checked;
+            
+            let title = '📅 Distribución de ';
+            if (lunchEnabled && breaksEnabled) {
+                title += 'almuerzo y descansos';
+            } else if (lunchEnabled) {
+                title += 'almuerzo';
+            } else if (breaksEnabled) {
+                title += 'descansos';
+            }
+            title += ` – Turno ${shiftStart}–${shiftEnd}\n`;
+            
+            if (breaksEnabled && breakDuration) {
+                const hours = Math.floor(breakDuration / 60);
+                const mins = breakDuration % 60;
+                const durationStr = hours > 0 ? `${hours}h ${mins}min` : `${mins} min`;
+                title += `⏱️ Duración de cada descanso: ${durationStr}\n`;
+            }
+            
+            title += '\n';
+            
+            let text = title;
+            
+            schedule.forEach(s => {
+                const emoji = s.doctor.startsWith('Dr.') ? '👨‍⚕️' : '👩‍⚕️';
+                text += `${emoji} ${s.doctor}\n`;
+                if (lunchEnabled && s.lunch) {
+                    text += `• Almuerzo: ${s.lunch.start}–${s.lunch.end}\n`;
+                }
+                if (breaksEnabled && s.breaks.length > 0) {
+                    text += `• Descansos: ${s.breaks.map(b => `${b.start}–${b.end}`).join(' / ')}\n`;
+                }
+                text += '\n';
+            });
+
+            document.getElementById('result').textContent = text;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result-actions').style.display = 'flex';
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('result').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Texto copiado al portapapeles');
+            }).catch(() => {
+                showError('No se pudo copiar al portapapeles');
+            });
+        }
+
+        function sendWhatsApp() {
+            const text = encodeURIComponent(document.getElementById('result').textContent);
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const url = isMobile ? `whatsapp://send?text=${text}` : `https://wa.me/?text=${text}`;
+            window.open(url, '_blank');
+        }
+
+        function saveTemplate() {
+            const name = document.getElementById('template-name').value.trim();
+            if (!name) {
+                showError('Ingresa un nombre para la plantilla');
+                return;
+            }
+
+            const template = {
+                name: name,
+                doctors: doctors,
+                shiftStart: document.getElementById('shift-start').value,
+                shiftEnd: document.getElementById('shift-end').value,
+                lunchEnabled: document.getElementById('enable-lunch').checked,
+                lunchStart: document.getElementById('lunch-start').value,
+                lunchEnd: document.getElementById('lunch-end').value,
+                lunchDuration: document.getElementById('lunch-duration').value,
+                breaksEnabled: document.getElementById('enable-breaks').checked,
+                breakStartTime: document.getElementById('break-start-time').value,
+                breakEndTime: document.getElementById('break-end-time').value,
+                breakCount: document.getElementById('break-count').value
+            };
+
+            const templates = JSON.parse(localStorage.getItem('scheduleTemplates') || '[]');
+            templates.push(template);
+            localStorage.setItem('scheduleTemplates', JSON.stringify(templates));
+            
+            document.getElementById('template-name').value = '';
+            loadTemplates();
+            alert('✅ Plantilla guardada correctamente');
+        }
+
+        function loadTemplate(index) {
+            const templates = JSON.parse(localStorage.getItem('scheduleTemplates') || '[]');
+            const t = templates[index];
+            
+            doctors = t.doctors;
+
+            document.getElementById('shift-start').value = t.shiftStart;
+            document.getElementById('shift-end').value = t.shiftEnd;
+
+            document.getElementById('enable-lunch').checked = t.lunchEnabled !== false;
+            document.getElementById('lunch-start').value = t.lunchStart;
+            document.getElementById('lunch-end').value = t.lunchEnd;
+            document.getElementById('lunch-duration').value = t.lunchDuration;
+
+            document.getElementById('enable-breaks').checked = t.breaksEnabled !== false;
+
+            if (t.breakStartTime !== undefined) {
+                document.getElementById('break-start-time').value = t.breakStartTime;
+                document.getElementById('break-end-time').value = t.breakEndTime;
+            } else if (t.breakStart !== undefined) {
+                document.getElementById('break-start-time').value = t.breakStart;
+                document.getElementById('break-end-time').value = t.breakEnd;
+            } else {
+                document.getElementById('break-start-time').value = '09:00';
+                document.getElementById('break-end-time').value = '19:00';
+            }
+            
+            document.getElementById('break-count').value = t.breakCount || 2;
+            
+            toggleLunch();
+            toggleBreaks();
+            renderDoctors();
+            alert('✅ Plantilla cargada');
+        }
+
+        function deleteTemplate(index) {
+            if (!confirm('¿Eliminar esta plantilla?')) return;
+            const templates = JSON.parse(localStorage.getItem('scheduleTemplates') || '[]');
+            templates.splice(index, 1);
+            localStorage.setItem('scheduleTemplates', JSON.stringify(templates));
+            loadTemplates();
+        }
+
+        function loadTemplates() {
+            const templates = JSON.parse(localStorage.getItem('scheduleTemplates') || '[]');
+            const container = document.getElementById('templates');
+            
+            if (templates.length === 0) {
+                container.innerHTML = '<p style="color: #999;">No hay plantillas guardadas</p>';
+                return;
+            }
+            
+            container.innerHTML = templates.map((t, i) => `
+                <button class="btn btn-secondary" onclick="loadTemplate(${i})">${t.name}</button>
+                <button class="btn btn-danger" onclick="deleteTemplate(${i})" style="margin-left: -5px;">✖</button>
+            `).join('');
+        }
+
+        // Inicialización
+        doctors = [
+            { title: 'Dr.', name: '' },
+            { title: 'Dra.', name: '' }
+        ];
+        renderDoctors();
+        loadTemplates();
+    </script>
+</body>
+</html>
